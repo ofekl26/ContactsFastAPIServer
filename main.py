@@ -31,6 +31,9 @@ class User(BaseModel):
     password: str
     deviceId: str
 
+class Data(BaseModel):
+    msg: str
+
 class UserInDB(User):
     hashed_password: str
 
@@ -85,7 +88,6 @@ async def authorize_user(user: User) -> User:
         else:
             if str(hashlib.sha256(user.username.encode('utf-8')).hexdigest()) == customer[0]['_password']:
                 #verifying customers password and relating him to the device he logged in from
-                await authorize_device(user)
                 access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
                 access_token = create_access_token(data=user.dict(), expires_delta=access_token_expires)
                 return {"access_token": access_token, "token_type": "bearer"}
@@ -94,10 +96,11 @@ async def authorize_user(user: User) -> User:
     except Exception as err:
         return repr(err)
 
-async def authorize_device(user):
-    device = dict(db.get_collection('Devices').find_one({'_deviceId':user.deviceId}))
-    #checking if the device id is in the db and if its not well add it
-    if device is None:
+def authorize_device(user):
+    device = dict(db.get_collection('Devices').find({'_deviceId':user.deviceId}))
+    # print(device)
+    #checking if the device id is in the db and if its not itll add it
+    if device is []:
         db.get_collection('Devices').insert_one({'_deviceId':user.deviceId})
         #added the device
     else:
@@ -160,8 +163,11 @@ async def update_contacts_request(req: Req, token: str = Depends(oauth2_scheme))
 
 if __name__ == "__main__":
     uvicorn.run(app,
-      host="localhost",
+      host="172.20.10.4",
       port=8556,
     #   reload = True,
       ssl_keyfile='C:\\Users\Admin\\Documents\\VS-Projects\\Python\\FastAPIServer\\server.key',
       ssl_certfile='C:\\Users\Admin\\Documents\\VS-Projects\\Python\\FastAPIServer\\server.crt')
+
+#this project wouldnt have become reality without some special people who helped along the way,
+#Beti Shatochin and Lior Shwartz to name a few
